@@ -31,6 +31,7 @@
 #include <net/cipso_ipv4.h>
 #include <linux/audit.h>
 #include <linux/magic.h>
+#include <linux/dcache.h>
 #include "smack.h"
 
 #define task_security(task)	(task_cred_xxx((task), security))
@@ -428,6 +429,7 @@ static void smack_inode_free_security(struct inode *inode)
  * smack_inode_init_security - copy out the smack from an inode
  * @inode: the inode
  * @dir: unused
+ * @qstr: unused
  * @name: where to put the attribute name
  * @value: where to put the attribute value
  * @len: where to put the length of the attribute
@@ -435,7 +437,8 @@ static void smack_inode_free_security(struct inode *inode)
  * Returns 0 if it all works out, -ENOMEM if there's no memory
  */
 static int smack_inode_init_security(struct inode *inode, struct inode *dir,
-				     char **name, void **value, size_t *len)
+				     const struct qstr *qstr, char **name,
+				     void **value, size_t *len)
 {
 	char *isp = smk_of_inode(inode);
 

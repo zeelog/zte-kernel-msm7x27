@@ -24,6 +24,7 @@
 
 #include <linux/fs.h>
 #include <linux/binfmts.h>
+#include <linux/dcache.h>
 #include <linux/signal.h>
 #include <linux/resource.h>
 #include <linux/sem.h>
@@ -316,6 +317,7 @@ static inline void security_free_mnt_opts(struct security_mnt_opts *opts)
  *	then it should return -EOPNOTSUPP to skip this processing.
  *	@inode contains the inode structure of the newly created inode.
  *	@dir contains the inode structure of the parent directory.
+ *	@qstr contains the last path component of the new object
  *	@name will be set to the allocated name suffix (e.g. selinux).
  *	@value will be set to the allocated attribute value.
  *	@len will be set to the length of the value.
@@ -1430,7 +1432,8 @@ struct security_operations {
 	int (*inode_alloc_security) (struct inode *inode);
 	void (*inode_free_security) (struct inode *inode);
 	int (*inode_init_security) (struct inode *inode, struct inode *dir,
-				    char **name, void **value, size_t *len);
+				    const struct qstr *qstr, char **name,
+				    void **value, size_t *len);
 	int (*inode_create) (struct inode *dir,
 			     struct dentry *dentry, int mode);
 	int (*inode_link) (struct dentry *old_dentry,
@@ -1689,7 +1692,8 @@ int security_sb_parse_opts_str(char *options, struct security_mnt_opts *opts);
 int security_inode_alloc(struct inode *inode);
 void security_inode_free(struct inode *inode);
 int security_inode_init_security(struct inode *inode, struct inode *dir,
-				  char **name, void **value, size_t *len);
+				 const struct qstr *qstr, char **name,
+				 void **value, size_t *len);
 int security_inode_create(struct inode *dir, struct dentry *dentry, int mode);
 int security_inode_link(struct dentry *old_dentry, struct inode *dir,
 			 struct dentry *new_dentry);
@@ -2015,6 +2019,7 @@ static inline void security_inode_free(struct inode *inode)
 
 static inline int security_inode_init_security(struct inode *inode,
 						struct inode *dir,
+						const struct qstr *qstr,
 						char **name,
 						void **value,
 						size_t *len)

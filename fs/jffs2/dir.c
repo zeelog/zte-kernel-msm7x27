@@ -214,8 +214,7 @@ static int jffs2_create(struct inode *dir_i, struct dentry *dentry, int mode,
 	   no chance of AB-BA deadlock involving its f->sem). */
 	mutex_unlock(&f->sem);
 
-	ret = jffs2_do_create(c, dir_f, f, ri,
-			      dentry->d_name.name, dentry->d_name.len);
+	ret = jffs2_do_create(c, dir_f, f, ri, &dentry->d_name);
 	if (ret)
 		goto fail;
 
@@ -388,7 +387,7 @@ static int jffs2_symlink (struct inode *dir_i, struct dentry *dentry, const char
 
 	jffs2_complete_reservation(c);
 
-	ret = jffs2_init_security(inode, dir_i);
+	ret = jffs2_init_security(inode, dir_i, &dentry->d_name);
 	if (ret)
 		goto fail;
 
@@ -534,7 +533,7 @@ static int jffs2_mkdir (struct inode *dir_i, struct dentry *dentry, int mode)
 
 	jffs2_complete_reservation(c);
 
-	ret = jffs2_init_security(inode, dir_i);
+	ret = jffs2_init_security(inode, dir_i, &dentry->d_name);
 	if (ret)
 		goto fail;
 
@@ -709,7 +708,7 @@ static int jffs2_mknod (struct inode *dir_i, struct dentry *dentry, int mode, de
 
 	jffs2_complete_reservation(c);
 
-	ret = jffs2_init_security(inode, dir_i);
+	ret = jffs2_init_security(inode, dir_i, &dentry->d_name);
 	if (ret)
 		goto fail;
 

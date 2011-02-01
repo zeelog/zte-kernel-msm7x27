@@ -146,7 +146,8 @@ xfs_ichgtime(
 STATIC int
 xfs_init_security(
 	struct inode	*inode,
-	struct inode	*dir)
+	struct inode	*dir,
+	const struct qstr *qstr)
 {
 	struct xfs_inode *ip = XFS_I(inode);
 	size_t		length;
@@ -154,7 +155,7 @@ xfs_init_security(
 	unsigned char	*name;
 	int		error;
 
-	error = security_inode_init_security(inode, dir, (char **)&name,
+	error = security_inode_init_security(inode, dir, qstr, (char **)&name,
 					     &value, &length);
 	if (error) {
 		if (error == -EOPNOTSUPP)
@@ -238,7 +239,7 @@ xfs_vn_mknod(
 
 	inode = VFS_I(ip);
 
-	error = xfs_init_security(inode, dir);
+	error = xfs_init_security(inode, dir, &dentry->d_name);
 	if (unlikely(error))
 		goto out_cleanup_inode;
 
@@ -411,7 +412,7 @@ xfs_vn_symlink(
 
 	inode = VFS_I(cip);
 
-	error = xfs_init_security(inode, dir);
+	error = xfs_init_security(inode, dir, &dentry->d_name);
 	if (unlikely(error))
 		goto out_cleanup_inode;
 
