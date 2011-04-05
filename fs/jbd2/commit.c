@@ -104,6 +104,8 @@ static int journal_submit_commit_record(journal_t *journal,
 	int barrier_done = 0;
 	struct timespec now = current_kernel_time();
 
+	*cbh = NULL;
+
 	if (is_journal_aborted(journal))
 		return 0;
 
@@ -851,7 +853,7 @@ wait_for_iobuf:
 		if (err)
 			__jbd2_journal_abort_hard(journal);
 	}
-	if (!err && !is_journal_aborted(journal))
+	if (cbh)
 		err = journal_wait_on_commit_record(journal, cbh);
 
 	if (err)
