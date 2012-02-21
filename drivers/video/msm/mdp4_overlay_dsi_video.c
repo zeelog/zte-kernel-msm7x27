@@ -127,7 +127,7 @@ int mdp4_dsi_video_on(struct platform_device *pdev)
 
 	bpp = fbi->var.bits_per_pixel / 8;
 	buf = (uint8 *) fbi->fix.smem_start;
-	buf_offset = calc_fb_offset(mfd, fbi, bpp);
+	buf += calc_fb_offset(mfd, fbi, bpp);
 
 	if (dsi_pipe == NULL) {
 		ptype = mdp4_overlay_format2type(mfd->fb_imgType);
@@ -317,7 +317,6 @@ void mdp4_dsi_video_3d_sbys(struct msm_fb_data_type *mfd,
 {
 	struct fb_info *fbi;
 	struct mdp4_overlay_pipe *pipe;
-	unsigned int buf_offset;
 	int bpp;
 	uint8 *buf = NULL;
 
@@ -339,7 +338,7 @@ void mdp4_dsi_video_3d_sbys(struct msm_fb_data_type *mfd,
 
 	bpp = fbi->var.bits_per_pixel / 8;
 	buf = (uint8 *) fbi->fix.smem_start;
-	buf_offset = calc_fb_offset(mfd, fbi, bpp);
+	buf += calc_fb_offset(mfd, fbi, bpp);
 
 	if (pipe->is_3d) {
 		pipe->src_height = pipe->src_height_3d;
@@ -678,16 +677,16 @@ void mdp4_dsi_video_overlay(struct msm_fb_data_type *mfd)
 	uint8 *buf;
 	unsigned int buf_offset;
 	int bpp;
-	unsigned long flag;
+
 	struct mdp4_overlay_pipe *pipe;
 
 	if (!mfd->panel_power_on)
 		return;
 
-	/* no need to power on cmd block since it's dsi mode */
+	/* no need to power on cmd block since it's dsi video mode */
 	bpp = fbi->var.bits_per_pixel / 8;
 	buf = (uint8 *) fbi->fix.smem_start;
-	buf_offset = calc_fb_offset(mfd, fbi, bpp);
+	buf += calc_fb_offset(mfd, fbi, bpp);
 
 	mutex_lock(&mfd->dma->ov_mutex);
 
