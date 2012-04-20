@@ -96,6 +96,12 @@ static int msm_cpufreq_target(struct cpufreq_policy *policy,
 		return -EINVAL;
 	}
 
+	// msm: cpufreq: Do not call a cpu transition if selecting the same speed
+	if (policy->cur == table[index].frequency) {
+		ret = 0;
+		goto done;
+	}
+
 #ifdef CONFIG_CPU_FREQ_DEBUG
 	dprintk("CPU[%d] target %d relation %d (%d-%d) selected %d\n",
 		policy->cpu, target_freq, relation,
