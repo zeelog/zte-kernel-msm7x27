@@ -1,6 +1,8 @@
 #ifndef _ASM_GENERIC_PGTABLE_H
 #define _ASM_GENERIC_PGTABLE_H
 
+#include <linux/mm_types.h>
+
 #ifndef __ASSEMBLY__
 #ifdef CONFIG_MMU
 
