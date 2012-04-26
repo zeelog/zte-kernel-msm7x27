@@ -49,7 +49,7 @@ static int __cpuidle_register_device(struct cpuidle_device *dev);
  */
 static void cpuidle_idle_call(void)
 {
-	struct cpuidle_device *dev = __get_cpu_var(cpuidle_devices);
+	struct cpuidle_device *dev = __this_cpu_var(cpuidle_devices);
 	struct cpuidle_state *target_state;
 	int next_state;
 
@@ -96,7 +96,15 @@ static void cpuidle_idle_call(void)
 
 	/* enter the state and update stats */
 	dev->last_state = target_state;
+
+	trace_power_start(POWER_CSTATE, next_state, dev->cpu);
+	trace_cpu_idle(next_state, dev->cpu);
+
 	dev->last_residency = target_state->enter(dev, target_state);
+
+	trace_power_end(dev->cpu);
+	trace_cpu_idle(PWR_EVENT_EXIT, dev->cpu);
+
 	if (dev->last_state)
 		target_state = dev->last_state;
 
@@ -106,7 +114,7 @@ static void cpuidle_idle_call(void)
 	/* give the governor an opportunity to reflect on the outcome */
 	if (cpuidle_curr_governor->reflect)
 		cpuidle_curr_governor->reflect(dev);
-	trace_power_end(0);
+//	trace_power_end(0);
 }
 
 /**
@@ -177,6 +185,8 @@ int cpuidle_enable_device(struct cpuidle_device *dev)
 		if (ret)
 			return ret;
 	}
+
+	poll_idle_init(dev);
 
 	if ((ret = cpuidle_add_state_sysfs(dev)))
 		return ret;
