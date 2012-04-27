@@ -11,6 +11,8 @@
 	mov	\tmp1, #0xffff0fff
 	str	\tp, [\tmp1, #-15]		@ set TLS value at 0xffff0ff0
 #endif
+	mov	\tmp1, #0
+	mcr	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
 	.endm
 
 	.macro set_tls_v6, tp, tmp1, tmp2
@@ -22,6 +24,8 @@
 #ifdef CONFIG_TLS_USERSPACE_EMUL
 	str	\tp, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
 #else
+	movne	\tmp1, #0
+	mcrne	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
 	streq	\tp, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
 #endif
 	.endm
