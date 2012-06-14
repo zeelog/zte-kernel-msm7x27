@@ -148,7 +148,19 @@ struct sx150x_platform_data msm8960_sx150x_data[] = {
 #define MSM_ION_MFC_SIZE	SZ_8K
 #define MSM_ION_HEAP_NUM	7
 #define MSM_LIQUID_ION_MM_SIZE (MSM_ION_MM_SIZE + 0x600000)
+<<<<<<< HEAD
 static unsigned int msm_ion_cp_mm_size = MSM_ION_MM_SIZE;
+=======
+#define MSM_LIQUID_ION_SF_SIZE MSM_LIQUID_PMEM_SIZE
+#define MSM_HDMI_PRIM_ION_SF_SIZE MSM_HDMI_PRIM_PMEM_SIZE
+
+#define MSM8960_FIXED_AREA_START 0xb0000000
+#define MAX_FIXED_AREA_SIZE	0x10000000
+#define MSM_MM_FW_SIZE		0x200000
+#define MSM8960_FW_START	(MSM8960_FIXED_AREA_START - MSM_MM_FW_SIZE)
+
+static unsigned msm_ion_sf_size = MSM_ION_SF_SIZE;
+>>>>>>> ba3b888... msm: vidc: Downloads firmware using pil_get.
 #else
 #define MSM_PMEM_KERNEL_EBI1_SIZE  0x110C000
 #define MSM_ION_HEAP_NUM	1

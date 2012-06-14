@@ -141,6 +141,7 @@ enum {
 #define MDP_OV_PLAY_NOWAIT		0x00200000
 #define MDP_SOURCE_ROTATED_90		0x00100000
 #define MDP_DPP_HSIC			0x00080000
+#define MDP_BACKEND_COMPOSITION		0x00040000
 #define MDP_BORDERFILL_SUPPORTED	0x00010000
 #define MDP_SECURE_OVERLAY_SESSION      0x00008000
 #define MDP_MEMORY_ID_TYPE_FB		0x00001000
@@ -437,10 +438,20 @@ struct mdp_lut_cfg_data {
 	} data;
 };
 
+struct mdp_qseed_cfg_data {
+	uint32_t block;
+	uint32_t table_num;
+	uint32_t ops;
+	uint32_t len;
+	uint32_t *data;
+};
+
+
 enum {
 	mdp_op_pcc_cfg,
 	mdp_op_csc_cfg,
 	mdp_op_lut_cfg,
+	mdp_op_qseed_cfg,
 	mdp_op_max,
 };
 
@@ -450,6 +461,7 @@ struct msmfb_mdp_pp {
 		struct mdp_pcc_cfg_data pcc_cfg_data;
 		struct mdp_csc_cfg_data csc_cfg_data;
 		struct mdp_lut_cfg_data lut_cfg_data;
+		struct mdp_qseed_cfg_data qseed_cfg_data;
 	} data;
 };
 
@@ -475,11 +487,16 @@ struct msmfb_mixer_info_req {
 	struct mdp_mixer_info info[MAX_PIPE_PER_MIXER];
 };
 
+enum {
+	DISPLAY_SUBSYSTEM_ID,
+	ROTATOR_SUBSYSTEM_ID,
+};
 
 #ifdef __KERNEL__
 
 /* get the framebuffer physical address information */
-int get_fb_phys_info(unsigned long *start, unsigned long *len, int fb_num);
+int get_fb_phys_info(unsigned long *start, unsigned long *len, int fb_num,
+	int subsys_id);
 struct fb_info *msm_fb_get_writeback_fb(void);
 int msm_fb_writeback_init(struct fb_info *info);
 int msm_fb_writeback_start(struct fb_info *info);

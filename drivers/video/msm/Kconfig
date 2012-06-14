@@ -177,6 +177,11 @@ config FB_MSM_LCDC_OLED_WVGA
 	select FB_MSM_LCDC_PANEL
 	default n
 
+config FB_MSM_LCDC_SKATE_WVGA
+	bool
+	select FB_MSM_LCDC_PANEL
+	default n
+
 config FB_MSM_LCDC_V9_WVGA
 	bool
 	select FB_MSM_LCDC_PANEL
@@ -557,14 +562,14 @@ config FB_MSM_LCDC_V9_WVGA_PANEL
 	select FB_MSM_LCDC_V9_WVGA
 	---help---
 	  Support for LCDC V9 WVGA (800x480) panel
-	  
+
 config FB_MSM_LCDC_BLADE2_WVGA_PANEL
 	depends on FB_MSM_LCDC_HW
 	bool "LCDC BLADE2 WVGA Panel"
 	select FB_MSM_LCDC_BLADE2_WVGA
 	---help---
 	  Support for LCDC BLADE2 WVGA (800x480) panel
-	  
+
 config FB_MSM_LCDC_LEAD_HVGA_PANEL
 	depends on FB_MSM_LCDC_HW
 	bool "LCDC LEAD HVGA Panel"
@@ -578,7 +583,7 @@ config FB_MSM_LCDC_NOVA_HVGA_PANEL
 	select FB_MSM_LCDC_NOVA_HVGA
 	---help---
 	  Support for LCDC NOVA TFT HVGA (320x480) panel
-	  
+
 config FB_MSM_LCDC_SAILBOAT_HVGA_PANEL
 	depends on FB_MSM_LCDC_HW
 	bool "LCDC SAILBOAT HVGA Panel"

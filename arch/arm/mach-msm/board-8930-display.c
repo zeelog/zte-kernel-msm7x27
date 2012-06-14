@@ -438,7 +438,11 @@ static struct msm_panel_common_pdata mdp_pdata = {
 	.mdp_bus_scale_table = &mdp_bus_scale_pdata,
 #endif
 	.mdp_rev = MDP_REV_42,
-	.writeback_offset = writeback_offset,
+#ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
+	.mem_hid = BIT(ION_CP_MM_HEAP_ID),
+#else
+	.mem_hid = MEMTYPE_EBI1,
+#endif
 };
 
 #define LPM_CHANNEL0 0

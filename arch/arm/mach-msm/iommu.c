@@ -1,4 +1,4 @@
-/* Copyright (c) 2010, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -8,11 +8,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA.
  */
 
 #define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
@@ -97,13 +92,13 @@ static int __flush_iotlb(struct iommu_domain *domain)
 	}
 #endif
 
+	mb();
 	list_for_each_entry(ctx_drvdata, &priv->list_attached, attached_elm) {
 		if (!ctx_drvdata->pdev || !ctx_drvdata->pdev->dev.parent)
 			BUG();
 
 		iommu_drvdata = dev_get_drvdata(ctx_drvdata->pdev->dev.parent);
-		if (!iommu_drvdata)
-			BUG();
+		BUG_ON(!iommu_drvdata);
 
 		ret = __enable_clocks(iommu_drvdata);
 		if (ret)
@@ -138,12 +133,14 @@ static void __reset_context(void __iomem *base, int ctx)
 	SET_TLBLKCR(base, ctx, 0);
 	SET_PRRR(base, ctx, 0);
 	SET_NMRR(base, ctx, 0);
-	SET_CONTEXTIDR(base, ctx, 0);
+	mb();
 }
 
-static void __program_context(void __iomem *base, int ctx, phys_addr_t pgtable)
+static void __program_context(void __iomem *base, int ctx, int ncb,
+			      phys_addr_t pgtable)
 {
 	unsigned int prrr, nmrr;
+	int i, j, found;
 	__reset_context(base, ctx);
 
 	/* Set up HTW mode */
@@ -154,7 +151,7 @@ static void __program_context(void __iomem *base, int ctx, phys_addr_t pgtable)
 	SET_V2PCFG(base, ctx, 0x3);
 
 	SET_TTBCR(base, ctx, 0);
-	SET_TTBR0_PA(base, ctx, (pgtable >> 14));
+	SET_TTBR0_PA(base, ctx, (pgtable >> TTBR0_PA_SHIFT));
 
 	/* Invalidate the TLB for this context */
 	SET_CTX_TLBIALL(base, ctx, 0);
@@ -205,11 +202,41 @@ static void __program_context(void __iomem *base, int ctx, phys_addr_t pgtable)
 	SET_TTBR1_ORGN(base, ctx, 1); /* WB, WA */
 #endif
 
+	/* Find if this page table is used elsewhere, and re-use ASID */
+	found = 0;
+	for (i = 0; i < ncb; i++)
+		if (GET_TTBR0_PA(base, i) == (pgtable >> TTBR0_PA_SHIFT) &&
+		    i != ctx) {
+			SET_CONTEXTIDR_ASID(base, ctx, \
+					    GET_CONTEXTIDR_ASID(base, i));
+			found = 1;
+			break;
+		}
+
+	/* If page table is new, find an unused ASID */
+	if (!found) {
+		for (i = 0; i < ncb; i++) {
+			found = 0;
+			for (j = 0; j < ncb; j++) {
+				if (GET_CONTEXTIDR_ASID(base, j) == i &&
+				    j != ctx)
+					found = 1;
+			}
+
+			if (!found) {
+				SET_CONTEXTIDR_ASID(base, ctx, i);
+				break;
+			}
+		}
+		BUG_ON(found);
+	}
+
 	/* Enable the MMU */
 	SET_M(base, ctx, 1);
+	mb();
 }
 
-static int msm_iommu_domain_init(struct iommu_domain *domain)
+static int msm_iommu_domain_init(struct iommu_domain *domain, int flags)
 {
 	struct msm_priv *priv = kzalloc(sizeof(*priv), GFP_KERNEL);
 
@@ -302,7 +329,7 @@ static int msm_iommu_attach_dev(struct iommu_domain *domain, struct device *dev)
 	if (ret)
 		goto fail;
 
-	__program_context(iommu_drvdata->base, ctx_dev->num,
+	__program_context(iommu_drvdata->base, ctx_dev->num, iommu_drvdata->ncb,
 			  __pa(priv->pgtable));
 
 	__disable_clocks(iommu_drvdata);
@@ -416,47 +443,80 @@ static int msm_iommu_map(struct iommu_domain *domain, unsigned long va,
 
 	if (len == SZ_16M) {
 		int i = 0;
+
+		for (i = 0; i < 16; i++)
+			if (*(fl_pte+i)) {
+				ret = -EBUSY;
+				goto fail;
+			}
+
 		for (i = 0; i < 16; i++)
 			*(fl_pte+i) = (pa & 0xFF000000) | FL_SUPERSECTION |
 				  FL_AP_READ | FL_AP_WRITE | FL_TYPE_SECT |
-				  FL_SHARED | pgprot;
+				  FL_SHARED | FL_NG | pgprot;
 	}
 
-	if (len == SZ_1M)
-		*fl_pte = (pa & 0xFFF00000) | FL_AP_READ | FL_AP_WRITE |
-					    FL_TYPE_SECT | FL_SHARED | pgprot;
-
-	/* Need a 2nd level table */
-	if ((len == SZ_4K || len == SZ_64K) && (*fl_pte) == 0) {
-		unsigned long *sl;
-		sl = (unsigned long *) __get_free_pages(GFP_ATOMIC,
-							get_order(SZ_4K));
-
-		if (!sl) {
-			pr_debug("Could not allocate second level table\n");
-			ret = -ENOMEM;
+	if (len == SZ_1M) {
+		if (*fl_pte) {
+			ret = -EBUSY;
 			goto fail;
 		}
 
-		memset(sl, 0, SZ_4K);
-		*fl_pte = ((((int)__pa(sl)) & FL_BASE_MASK) | FL_TYPE_TABLE);
+		*fl_pte = (pa & 0xFFF00000) | FL_AP_READ | FL_AP_WRITE | FL_NG |
+					    FL_TYPE_SECT | FL_SHARED | pgprot;
+	}
+
+	/* Need a 2nd level table */
+	if (len == SZ_4K || len == SZ_64K) {
+
+		if (*fl_pte == 0) {
+			unsigned long *sl;
+			sl = (unsigned long *) __get_free_pages(GFP_ATOMIC,
+							get_order(SZ_4K));
+
+			if (!sl) {
+				pr_debug("Could not allocate second level table\n");
+				ret = -ENOMEM;
+				goto fail;
+			}
+			memset(sl, 0, SZ_4K);
+
+			*fl_pte = ((((int)__pa(sl)) & FL_BASE_MASK) | \
+						      FL_TYPE_TABLE);
+		}
+
+		if (!(*fl_pte & FL_TYPE_TABLE)) {
+			ret = -EBUSY;
+			goto fail;
+		}
 	}
 
 	sl_table = (unsigned long *) __va(((*fl_pte) & FL_BASE_MASK));
 	sl_offset = SL_OFFSET(va);
 	sl_pte = sl_table + sl_offset;
 
+	if (len == SZ_4K) {
+		if (*sl_pte) {
+			ret = -EBUSY;
+			goto fail;
+		}
 
-	if (len == SZ_4K)
-		*sl_pte = (pa & SL_BASE_MASK_SMALL) | SL_AP0 | SL_AP1 |
+		*sl_pte = (pa & SL_BASE_MASK_SMALL) | SL_AP0 | SL_AP1 | SL_NG |
 					  SL_SHARED | SL_TYPE_SMALL | pgprot;
+	}
 
 	if (len == SZ_64K) {
 		int i;
 
 		for (i = 0; i < 16; i++)
+			if (*(sl_pte+i)) {
+				ret = -EBUSY;
+				goto fail;
+			}
+
+		for (i = 0; i < 16; i++)
 			*(sl_pte+i) = (pa & SL_BASE_MASK_LARGE) | SL_AP0 |
-				SL_AP1 | SL_SHARED | SL_TYPE_LARGE | pgprot;
+			    SL_NG | SL_AP1 | SL_SHARED | SL_TYPE_LARGE | pgprot;
 	}
 
 	ret = __flush_iotlb(domain);
@@ -581,8 +641,10 @@ static phys_addr_t msm_iommu_iova_to_phys(struct iommu_domain *domain,
 
 	/* Invalidate context TLB */
 	SET_CTX_TLBIALL(base, ctx, 0);
-	SET_V2PPR_VA(base, ctx, va >> V2Pxx_VA_SHIFT);
+	mb();
+	SET_V2PPR(base, ctx, va & V2Pxx_VA);
 
+	mb();
 	par = GET_PAR(base, ctx);
 
 	/* We are dealing with a supersection */
@@ -638,7 +700,7 @@ irqreturn_t msm_iommu_fault_handler(int irq, void *dev_id)
 	struct msm_iommu_drvdata *drvdata = dev_id;
 	void __iomem *base;
 	unsigned int fsr;
-	int ncb, i, ret;
+	int i, ret;
 
 	spin_lock(&msm_iommu_lock);
 
@@ -651,13 +713,13 @@ irqreturn_t msm_iommu_fault_handler(int irq, void *dev_id)
 
 	pr_err("Unexpected IOMMU page fault!\n");
 	pr_err("base = %08x\n", (unsigned int) base);
+	pr_err("name = %s\n", drvdata->name);
 
 	ret = __enable_clocks(drvdata);
 	if (ret)
 		goto fail;
 
-	ncb = GET_NCB(base)+1;
-	for (i = 0; i < ncb; i++) {
+	for (i = 0; i < drvdata->ncb; i++) {
 		fsr = GET_FSR(base, i);
 		if (fsr) {
 			pr_err("Fault occurred in context %d.\n", i);

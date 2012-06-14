@@ -1,4 +1,4 @@
-/* Copyright (c) 2010, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -8,11 +8,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA.
  */
 
 #define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
@@ -85,9 +80,9 @@ fail:
 }
 EXPORT_SYMBOL(msm_iommu_get_ctx);
 
-static void msm_iommu_reset(void __iomem *base)
+static void msm_iommu_reset(void __iomem *base, int ncb)
 {
-	int ctx, ncb;
+	int ctx;
 
 	SET_RPUE(base, 0);
 	SET_RPUEIE(base, 0);
@@ -100,7 +95,6 @@ static void msm_iommu_reset(void __iomem *base)
 	SET_GLOBAL_TLBIALL(base, 0);
 	SET_RPU_ACR(base, 0);
 	SET_TLBLKCRWE(base, 1);
-	ncb = GET_NCB(base)+1;
 
 	for (ctx = 0; ctx < ncb; ctx++) {
 		SET_BPRCOSH(base, ctx, 0);
@@ -125,6 +119,7 @@ static void msm_iommu_reset(void __iomem *base)
 		SET_NMRR(base, ctx, 0);
 		SET_CONTEXTIDR(base, ctx, 0);
 	}
+	mb();
 }
 
 static int msm_iommu_probe(struct platform_device *pdev)
@@ -136,7 +131,7 @@ static int msm_iommu_probe(struct platform_device *pdev)
 	struct msm_iommu_dev *iommu_dev = pdev->dev.platform_data;
 	void __iomem *regs_base;
 	resource_size_t	len;
-	int ret, ncb, nm2v, irq;
+	int ret, irq, par;
 
 	if (pdev->id == -1) {
 		msm_iommu_root_dev = pdev;
@@ -186,7 +181,7 @@ static int msm_iommu_probe(struct platform_device *pdev)
 		goto fail_clk;
 	}
 
-	len = r->end - r->start + 1;
+	len = resource_size(r);
 
 	r2 = request_mem_region(r->start, len, r->name);
 	if (!r2) {
@@ -205,16 +200,26 @@ static int msm_iommu_probe(struct platform_device *pdev)
 		goto fail_mem;
 	}
 
-	irq = platform_get_irq_byname(pdev, "secure_irq");
+	irq = platform_get_irq_byname(pdev, "nonsecure_irq");
 	if (irq < 0) {
 		ret = -ENODEV;
 		goto fail_io;
 	}
 
+	msm_iommu_reset(regs_base, iommu_dev->ncb);
+
+	SET_M(regs_base, 0, 1);
+	SET_PAR(regs_base, 0, 0);
+	SET_V2PCFG(regs_base, 0, 1);
+	SET_V2PPR(regs_base, 0, 0);
+	mb();
+	par = GET_PAR(regs_base, 0);
+	SET_V2PCFG(regs_base, 0, 0);
+	SET_M(regs_base, 0, 0);
 	mb();
 
-	if (GET_IDR(regs_base) == 0) {
-		pr_err("Invalid IDR value detected\n");
+	if (!par) {
+		pr_err("%s: Invalid PAR value detected\n", iommu_dev->name);
 		ret = -ENODEV;
 		goto fail_io;
 	}
@@ -226,17 +231,16 @@ static int msm_iommu_probe(struct platform_device *pdev)
 		goto fail_io;
 	}
 
-	msm_iommu_reset(regs_base);
+
 	drvdata->pclk = iommu_pclk;
 	drvdata->clk = iommu_clk;
 	drvdata->base = regs_base;
 	drvdata->irq = irq;
-
-	nm2v = GET_NM2VCBMT((unsigned long) regs_base);
-	ncb = GET_NCB((unsigned long) regs_base);
+	drvdata->ncb = iommu_dev->ncb;
+	drvdata->name = iommu_dev->name;
 
 	pr_info("device %s mapped at %p, irq %d with %d ctx banks\n",
-			iommu_dev->name, regs_base, irq, ncb+1);
+		iommu_dev->name, regs_base, irq, iommu_dev->ncb);
 
 	platform_set_drvdata(pdev, drvdata);
 
@@ -330,18 +334,22 @@ static int msm_iommu_ctx_probe(struct platform_device *pdev)
 		SET_M2VCBR_N(drvdata->base, mid, 0);
 		SET_CBACR_N(drvdata->base, c->num, 0);
 
-		/* Set VMID = MID */
-		SET_VMID(drvdata->base, mid, mid);
+		/* Set VMID = 0 */
+		SET_VMID(drvdata->base, mid, 0);
 
 		/* Set the context number for that MID to this context */
 		SET_CBNDX(drvdata->base, mid, c->num);
 
-		/* Set MID associated with this context bank */
-		SET_CBVMID(drvdata->base, c->num, mid);
+		/* Set MID associated with this context bank to 0 */
+		SET_CBVMID(drvdata->base, c->num, 0);
+
+		/* Set the ASID for TLB tagging for this context to 0 */
+		SET_CONTEXTIDR_ASID(drvdata->base, c->num, 0);
 
 		/* Set security bit override to be Non-secure */
 		SET_NSCFG(drvdata->base, mid, 3);
 	}
+	mb();
 
 	if (drvdata->clk)
 		clk_disable(drvdata->clk);

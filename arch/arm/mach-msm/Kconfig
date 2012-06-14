@@ -163,15 +163,15 @@ config ZTE_PLATFORM
 	bool "ZTE Platform"	
 	default y
 	help
-	  Global macro for ZTE code	  
-	  
+	  Global macro for ZTE code
+
 config F3_LOG
         depends on ARCH_MSM
         depends on !MSM_STACKED_MEMORY
         default y
         bool "F3 Log"
         help
-          Support for F3 log.	  
+          Support for F3 log.
 
 config MACH_BLADE
 	depends on ARCH_MSM7X27
@@ -224,7 +224,7 @@ config MACH_BLADE_CAMERA5MP
 	bool "ZTE blade board,5MP camera."
 	help
 	  Support for the ZTE blade board,5MP camera.
-	  
+
 config MACH_MOONCAKE
 	depends on ARCH_MSM7X27
 	depends on !MSM_STACKED_MEMORY
@@ -232,8 +232,8 @@ config MACH_MOONCAKE
 	bool "ZTE MOONCAKE"
 	select ZTE_PLATFORM
 	help
-	  Support for the ZTE MSM7x27 mooncake phone.	
-	    
+	  Support for the ZTE MSM7x27 mooncake phone.
+
 config MACH_V9
 	depends on ARCH_MSM7X27
 	depends on !MSM_STACKED_MEMORY
@@ -251,7 +251,7 @@ config MACH_RAISE
 	select ZTE_PLATFORM
 	help
 	  Support for the ZTE MSM7x27 raise phone.
-	  
+
 config MACH_JOE
 	depends on ARCH_MSM7X27
 	depends on !MSM_STACKED_MEMORY
@@ -260,7 +260,7 @@ config MACH_JOE
 	select ZTE_PLATFORM
 	help
 	  Support for the ZTE MSM7x27 joe phone.	
-	  
+
 config MACH_R750
 	depends on ARCH_MSM7X27
 	depends on !MSM_STACKED_MEMORY
@@ -268,7 +268,7 @@ config MACH_R750
 	bool "ZTE R750"
 	select ZTE_PLATFORM
 	help
-	  Support for the ZTE MSM7x27 r750 phone.		    		   	  
+	  Support for the ZTE MSM7x27 r750 phone.
 
 config MACH_IBOX
 	depends on ARCH_MSM7X27
@@ -287,7 +287,7 @@ config MACH_AMIGO
 	select ZTE_PLATFORM
 	help
 	  Support for the ZTE MSM7x27 amigo phone.	
-	  
+
 config MACH_SMOOTH
 	depends on ARCH_MSM7X27
 	depends on !MSM_STACKED_MEMORY
@@ -295,8 +295,8 @@ config MACH_SMOOTH
 	bool "ZTE SMOOTH"
 	select ZTE_PLATFORM
 	help
-	  Support for the ZTE MSM7x27 smooth phone.	  
-	  
+	  Support for the ZTE MSM7x27 smooth phone.
+
 config MACH_JOECDMA
 	depends on ARCH_MSM7X27
 	depends on !MSM_STACKED_MEMORY
@@ -304,8 +304,8 @@ config MACH_JOECDMA
 	bool "ZTE JOECDMA"
 	select ZTE_PLATFORM
 	help
-	  Support for the ZTE MSM7x27 joeCDMA phone.		  
-	  
+	  Support for the ZTE MSM7x27 joeCDMA phone.
+
 config MACH_RACER2
 	depends on ARCH_MSM7X27
 	depends on !MSM_STACKED_MEMORY
@@ -313,7 +313,7 @@ config MACH_RACER2
 	bool "ZTE_RACER2"
 	select ZTE_PLATFORM
 	help
-	  Support for the ZTE MSM7x27 racer2 phone. 
+	  Support for the ZTE MSM7x27 racer2 phone.
 
 config MACH_SKATE
 	depends on ARCH_MSM7X27
@@ -323,7 +323,7 @@ config MACH_SKATE
 	select ZTE_PLATFORM
 	help
 	  Support for the ZTE MSM7x27 skate phone.
-	  
+
 config MACH_ROAMER
 	depends on ARCH_MSM7X27
 	depends on !MSM_STACKED_MEMORY
@@ -331,8 +331,8 @@ config MACH_ROAMER
 	bool "ZTE ROAMER"
 	select ZTE_PLATFORM
 	help
-	  Support for the ZTE MSM7x27 roamer phone.	  
-	  
+	  Support for the ZTE MSM7x27 roamer phone.
+
 config MACH_BLUETICK
 	depends on ARCH_MSM7X27
 	depends on !MSM_STACKED_MEMORY
@@ -340,7 +340,7 @@ config MACH_BLUETICK
 	bool "ZTE BLUETICK"
 	select ZTE_PLATFORM
 	help
-	  Support for the ZTE MSM7x27 bluetick phone.	  
+	  Support for the ZTE MSM7x27 bluetick phone.
 
 # ZTE_FTM_FLAG_SUPPORT
 config ZTE_FTM_FLAG_SUPPORT
@@ -656,7 +656,7 @@ choice
 		bool "DG Timer"
 	help
 	  High resolution timer.
-endchoice	  
+endchoice
 
 choice
 	prompt "Suspend sleep mode"
@@ -683,7 +683,7 @@ choice
 
 	config MSM7X00A_SLEEP_WAIT_FOR_INTERRUPT
 		bool "Wait for interrupt"
-endchoice	  
+endchoice
 
 config MSM7X00A_SLEEP_MODE
 	int
@@ -718,7 +718,7 @@ choice
 
 	config MSM7X00A_IDLE_SLEEP_WAIT_FOR_INTERRUPT
 		bool "Wait for interrupt"
-endchoice	  
+endchoice
 
 config MSM7X00A_IDLE_SLEEP_MODE
 	int
@@ -1131,17 +1131,17 @@ config MSM_CPU_FREQ_OVERCLOCK
 	  If unsure, choose N.
 
 config MSM_CPU_FREQ_OVERCLOCK_800
-	bool "Overclock the CPU frequency (ZTE Skate)"
-	depends on MACH_SKATE
+	bool "Overclock the CPU frequency (ZTE Blade2 & ZTE Skate)"
+	depends on (MACH_BLADE2 || MACH_SKATE)
 	depends on MSM_CPU_FREQ_SET_MIN_MAX
 	default n
 	help
-	  Adds a number of overclocked frequencies for the 800MHz ZTE Skate.
+	  Adds a number of overclocked frequencies for the 800MHz ZTE Blade2 and ZTE Skate.
 	  If unsure, choose N.
 
 config MSM_CPU_FREQ_OVERCLOCK_AHB
 	bool "Overclock the AHB-bus with 50% for all frequencies from 400MHz and above."
-	depends on (MACH_BLADE || MACH_V9 || MACH_SKATE)
+	depends on (MACH_BLADE || MACH_BLADE2 || MACH_V9 || MACH_SKATE)
 	default n
 	help
 	  Increases the speed of memory read/writes but can cause instability.
@@ -1412,6 +1412,32 @@ config MSM_RPM_LOG
 	  of messages produced by the RPM. These messages provide diagnostic
 	  information about RPM operation. The driver outputs the messages
 	  via a debugfs node.
+
+
+config MSM_IOMMU
+        bool "MSM IOMMU Support"
+        depends on ARCH_MSM8X60 || ARCH_MSM8960
+        select IOMMU_API
+        default n
+        help
+          Support for the IOMMUs found on certain Qualcomm SOCs.
+          These IOMMUs allow virtualization of the address space used by most
+          cores within the multimedia subsystem.
+
+          If unsure, say N here.
+
+config IOMMU_PGTABLES_L2
+        bool "Allow SMMU page tables in the L2 cache (Experimental)"
+        depends on MSM_IOMMU=y
+        depends on MMU
+        depends on CPU_DCACHE_DISABLE=n
+        depends on SMP
+        default y
+        help
+         Improves TLB miss latency at the expense of potential L2 pollution.
+         However, with large multimedia buffers, the TLB should mostly contain
+         section mappings and TLB misses should be quite infrequent.
+         Most people can probably say Y here.
 
 config SMMU
 	bool "System MMU support"

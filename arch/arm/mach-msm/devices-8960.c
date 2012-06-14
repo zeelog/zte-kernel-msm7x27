@@ -541,10 +541,14 @@ struct msm_vidc_platform_data vidc_platform_data = {
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
 	.memtype = ION_CP_MM_HEAP_ID,
 	.enable_ion = 1,
+	.cp_enabled = 1,
 #else
 	.memtype = MEMTYPE_EBI1,
 	.enable_ion = 0,
 #endif
+	.disable_dmx = 0,
+	.disable_fullhd = 0,
+	.cont_mode_dpb_count = 18,
 };
 
 struct platform_device msm_device_vidc = {

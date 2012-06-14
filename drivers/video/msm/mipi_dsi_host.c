@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2008-2010, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2008-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -44,7 +44,6 @@
 #include "mdp.h"
 #include "mdp4.h"
 
-int mipi_dsi_clk_on;
 static struct completion dsi_dma_comp;
 static struct completion dsi_mdp_comp;
 static struct dsi_buf dsi_tx_buf;
@@ -152,11 +151,6 @@ void mipi_dsi_disable_irq(void)
 
 void mipi_dsi_turn_on_clks(void)
 {
-	if (mipi_dsi_clk_on) {
-		pr_err("%s: mipi_dsi_clks already ON\n", __func__);
-		return;
-	}
-	mipi_dsi_clk_on = 1;
 	local_bh_disable();
 	mipi_dsi_ahb_ctrl(1);
 	mipi_dsi_clk_enable();
@@ -165,11 +159,6 @@ void mipi_dsi_turn_on_clks(void)
 
 void mipi_dsi_turn_off_clks(void)
 {
-	if (mipi_dsi_clk_on == 0) {
-		pr_err("%s: mipi_dsi_clks already OFF\n", __func__);
-		return;
-	}
-	mipi_dsi_clk_on = 0;
 	local_bh_disable();
 	mipi_dsi_clk_disable();
 	mipi_dsi_ahb_ctrl(0);
@@ -1336,9 +1325,9 @@ irqreturn_t mipi_dsi_isr(int irq, void *ptr)
 		mipi_dsi_mdp_stat_inc(STAT_DSI_MDP);
 		spin_lock(&dsi_mdp_lock);
 		dsi_mdp_busy = FALSE;
+		mipi_dsi_disable_irq_nosync();
 		spin_unlock(&dsi_mdp_lock);
 		complete(&dsi_mdp_comp);
-		mipi_dsi_disable_irq_nosync();
 		mipi_dsi_post_kickoff_action();
 	}
 

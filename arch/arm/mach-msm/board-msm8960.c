@@ -697,10 +697,6 @@ static struct msm_cam_expander_info cam_expander_info[] = {
 #define MSM_PMEM_ADSP_SIZE         0x3800000
 #define MSM_PMEM_AUDIO_SIZE        0x28B000
 #define MSM_PMEM_SIZE 0x1800000 /* 24 Mbytes */
-<<<<<<< HEAD
-
-#define MSM_ION_EBI_SIZE	SZ_8M
-=======
 #endif
 
 
@@ -711,7 +707,6 @@ static struct msm_cam_expander_info cam_expander_info[] = {
 #else
 #define MSM_ION_HEAP_NUM	2
 #endif
->>>>>>> 2d1760b... board-msm8960: Add ion heaps corresponding to pmem heaps
 
 #ifdef CONFIG_KERNEL_PMEM_EBI_REGION
 static unsigned pmem_kernel_ebi1_size = MSM_PMEM_KERNEL_EBI1_SIZE;

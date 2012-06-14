@@ -44,7 +44,7 @@ static void memset16(void *_ptr, unsigned short val, unsigned count)
 ///ZTE_LCD_LUYA_20091221_001,start
 #ifndef CONFIG_ZTE_PLATFORM
 /* 565RLE image format: [count(2 bytes), rle(2 bytes)] */
-int load_565rle_image(char *filename)
+int load_565rle_image(char *filename, bool bf_supported)
 {
 	struct fb_info *info;
 	int fd, count, err = 0;

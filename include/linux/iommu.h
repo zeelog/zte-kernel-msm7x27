@@ -32,7 +32,7 @@ struct iommu_domain {
 #define IOMMU_CAP_CACHE_COHERENCY	0x1
 
 struct iommu_ops {
-	int (*domain_init)(struct iommu_domain *domain);
+	int (*domain_init)(struct iommu_domain *domain, int flags);
 	void (*domain_destroy)(struct iommu_domain *domain);
 	int (*attach_dev)(struct iommu_domain *domain, struct device *dev);
 	void (*detach_dev)(struct iommu_domain *domain, struct device *dev);
@@ -50,7 +50,7 @@ struct iommu_ops {
 
 extern void register_iommu(struct iommu_ops *ops);
 extern bool iommu_found(void);
-extern struct iommu_domain *iommu_domain_alloc(void);
+extern struct iommu_domain *iommu_domain_alloc(int flags);
 extern void iommu_domain_free(struct iommu_domain *domain);
 extern int iommu_attach_device(struct iommu_domain *domain,
 			       struct device *dev);
@@ -76,7 +76,7 @@ static inline bool iommu_found(void)
 	return false;
 }
 
-static inline struct iommu_domain *iommu_domain_alloc(void)
+static inline struct iommu_domain *iommu_domain_alloc(int flags)
 {
 	return NULL;
 }
