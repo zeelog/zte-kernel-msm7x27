@@ -625,9 +625,9 @@ static int cypress_ts_probe(struct i2c_client *client, const struct i2c_device_i
     ts->input_dev->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
 */
 //ZTE_SET_BIT_WLY_0518,END
-    set_bit(EV_SYN, ts->input_dev->evbit);
-    set_bit(EV_KEY, ts->input_dev->evbit);
-    set_bit(BTN_TOUCH, ts->input_dev->keybit);
+    //set_bit(EV_SYN, ts->input_dev->evbit);
+    //set_bit(EV_KEY, ts->input_dev->evbit);
+    //set_bit(BTN_TOUCH, ts->input_dev->keybit);
     set_bit(EV_ABS, ts->input_dev->evbit);
     /*ZTE_TOUCH_WLY_006, @2010-04-14,begin*/
     //ZTE_SET_BIT_WLY_0518,BEGIN
