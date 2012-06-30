@@ -491,14 +491,14 @@ static void synaptics_ts_work_func(struct work_struct *work)
 			if((16==gesture)||(flick_x)||(flick_y))
 			{
 				if ((flick_x >0 )&& (abs(flick_x) > abs(flick_y))) 
-				direction = 1;//�һ�
+				direction = 1;//ÓÒ»¬
 				else if((flick_x <0 )&& (abs(flick_x) > abs(flick_y)))  
-				direction = 2;//��
+				direction = 2;//×ó»¬
 				else if ((flick_y >0 )&& (abs(flick_x) < abs(flick_y))) 
-				direction = 3;//�ϻ�
+				direction = 3;//ÉÏ»¬
 	
 				else if ((flick_y <0 )&& (abs(flick_x) < abs(flick_y))) 
-				direction = 4;//�»�
+				direction = 4;//ÏÂ»¬
 
 			}
 			/*fick_x>0,means move apart, flick_y<0,means close together, the value means velocity*/
@@ -691,7 +691,7 @@ static int synaptics_ts_probe(
 			#else
 			ret = synaptics_i2c_read(ts->client, 0x78, buf1, 9);//ZTE_WLY_CRDB00512790,BEGIN
 			#endif
-			printk("wly: synaptics_i2c_read, %c, %c,%c,%c,%c,%c,%c,%c,%c\n",\
+			printk("wly: synaptics_i2c_read, %2x, %2x,%2x,%2x,%c,%c,%c,%c,%c\n",\
 				buf1[0],buf1[1],buf1[2],buf1[3],buf1[4],buf1[5],buf1[6],buf1[7],buf1[8]);
 			//ZTE_TOUCH_WLY_009,2010-05-10, BEGIN
 			if (ret >= 0)
@@ -703,6 +703,9 @@ static int synaptics_ts_probe(
 		/*ZTE_TOUCH_WLY_005,@2009-12-19,begin*/
 		if (retry < 0)
 		{
+#ifdef CONFIG_MACH_BLADE
+                        printk(KERN_ERR "synaptics_i2c_read failed. Falling back to polling mode.\n");
+#endif
 			ret = -1;
 			goto err_detect_failed;
 		}
@@ -717,6 +720,11 @@ static int synaptics_ts_probe(
 	#else
 	ret = synaptics_i2c_write(ts->client, 0x25, 0x00); /*wly set nomal operation*/
 	#endif
+
+#ifdef CONFIG_MACH_BLADE
+err_detect_failed:
+        max_x=1867; max_y=3096;
+#else
 	#if defined(CONFIG_MACH_SKATE)
 	ret = synaptics_i2c_read(ts->client, 0x3D, buf1, 2);
 	#elif defined(CONFIG_TOUCHSCREEN_SYNAPTICS_3K)
@@ -745,6 +753,7 @@ static int synaptics_ts_probe(
 		goto err_detect_failed;
 	}
 	ts->max[1] = max_y = buf1[0] | ((buf1[1] & 0x0f) << 8);
+#endif
 	printk("wly: synaptics_ts_probe,max_x=%d, max_y=%d\n", max_x, max_y);
 	ts->input_dev = input_allocate_device();
 	if (ts->input_dev == NULL) {
@@ -879,7 +888,9 @@ err_input_register_device_failed:
 	input_free_device(ts->input_dev);
 
 err_input_dev_alloc_failed:
+#ifndef CONFIG_MACH_BLADE
 err_detect_failed:
+#endif
 //err_power_failed:
 	kfree(ts);
 	destroy_workqueue(synaptics_wq);
