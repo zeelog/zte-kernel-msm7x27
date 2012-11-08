@@ -545,18 +545,24 @@ static void Fts_ts_work_func(struct work_struct *work)
 		z2 = 1;
 		finger2 = (buf[2] & 0x07)>1?1:0;
 
-		input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, pressure);
-		input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, 10);
+        input_report_abs(ts->input_dev, ABS_MT_SLOT, 1);
+        input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, 1);
+		//input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, pressure);
+		//input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, 10);
 		input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x);
 		input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y);
+        input_report_abs(ts->input_dev, ABS_MT_PRESSURE, pressure);
 		input_mt_sync(ts->input_dev);
 
 		if(finger2)
 		{
-			input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, pressure2);
-			input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, 10);
+            input_report_abs(ts->input_dev, ABS_MT_SLOT, 2);
+            input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, 2);
+			//input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, pressure2);
+			//input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, 10);
 			input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x2);
 			input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y2);
+            input_report_abs(ts->input_dev, ABS_MT_PRESSURE, pressure2);
 			input_mt_sync(ts->input_dev);
 		}
 			
@@ -719,6 +725,8 @@ static int Fts_ts_probe(
 
 	get_screeninfo( &xres, &yres );
 	
+    __set_bit(INPUT_PROP_DIRECT, ts->input_dev->propbit);
+
 	#if 0
 	set_bit(EV_SYN, ts->input_dev->evbit);
 	set_bit(EV_KEY, ts->input_dev->evbit);
@@ -746,22 +754,26 @@ static int Fts_ts_probe(
 	set_bit(EV_ABS, ts->input_dev->evbit);
 
 
-	//set_bit(KEY_HOME, ts->input_dev->keybit);
-	//set_bit(KEY_MENU, ts->input_dev->keybit);
-	//set_bit(KEY_BACK, ts->input_dev->keybit);
-	//set_bit(KEY_SEARCH, ts->input_dev->keybit);
+	set_bit(KEY_HOME, ts->input_dev->keybit);
+	set_bit(KEY_MENU, ts->input_dev->keybit);
+	set_bit(KEY_BACK, ts->input_dev->keybit);
+	set_bit(KEY_SEARCH, ts->input_dev->keybit);
 	
-	input_set_abs_params(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, xres, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, yres, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_MT_WIDTH_MAJOR, 0, 255, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_SINGLE_TAP, 0, 5, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_TAP_HOLD, 0, 5, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_EARLY_TAP, 0, 5, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_FLICK, 0, 5, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_PRESS, 0, 5, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_DOUBLE_TAP, 0, 5, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_PINCH, -255, 255, 0, 0);
+	//input_set_abs_params(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);
+	//input_set_abs_params(ts->input_dev, ABS_MT_WIDTH_MAJOR, 0, 255, 0, 0);
+	input_set_abs_params(ts->input_dev, ABS_MT_PRESSURE, 0, 255, 0, 0);
+    input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID, 0, 5, 0, 0);
+    input_set_abs_params(ts->input_dev, ABS_MT_SLOT, 0, 5, 0, 0);
+
+	//input_set_abs_params(ts->input_dev, ABS_SINGLE_TAP, 0, 5, 0, 0);
+	//input_set_abs_params(ts->input_dev, ABS_TAP_HOLD, 0, 5, 0, 0);
+	//input_set_abs_params(ts->input_dev, ABS_EARLY_TAP, 0, 5, 0, 0);
+	//input_set_abs_params(ts->input_dev, ABS_FLICK, 0, 5, 0, 0);
+	//input_set_abs_params(ts->input_dev, ABS_PRESS, 0, 5, 0, 0);
+	//input_set_abs_params(ts->input_dev, ABS_DOUBLE_TAP, 0, 5, 0, 0);
+	//input_set_abs_params(ts->input_dev, ABS_PINCH, -255, 255, 0, 0);
 
 	ret = input_register_device(ts->input_dev);
 	if (ret)
@@ -893,3 +905,4 @@ module_exit(Fts_ts_exit);
 
 MODULE_DESCRIPTION("Fts Touchscreen Driver");
 MODULE_LICENSE("GPL");
+
