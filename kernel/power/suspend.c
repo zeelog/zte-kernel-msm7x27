@@ -210,7 +210,6 @@ int suspend_devices_and_enter(suspend_state_t state)
 			goto Close;
 	}
 	suspend_console();
-	pm_restrict_gfp_mask();
 	suspend_test_start();
 	error = dpm_suspend_start(PMSG_SUSPEND);
 	if (error) {
@@ -229,7 +228,6 @@ int suspend_devices_and_enter(suspend_state_t state)
 	pr_info("Resume DONE in %s line %d\n",__func__,__LINE__);	//LHX_PM_20110113 add log to indicate resume finish
 	record_sleep_awake_time(false);		//LHX_PM_20110324_01 add code to record how long the APP sleeps or keeps awake 
 	suspend_test_finish("resume devices");
-	pm_restore_gfp_mask();
 	resume_console();
  Close:
 	if (suspend_ops->end)
@@ -290,7 +288,9 @@ int enter_state(suspend_state_t state)
 		goto Finish;
 
 	pr_debug("PM: Entering %s sleep\n", pm_states[state]);
+	pm_restrict_gfp_mask();
 	error = suspend_devices_and_enter(state);
+	pm_restore_gfp_mask();
 
  Finish:
 	pr_info("PM: Finishing wakeup.\n"); //LHX_PM_20110524_01 add log to indicate suspend_finish

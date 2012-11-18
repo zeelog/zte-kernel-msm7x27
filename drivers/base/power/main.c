@@ -55,6 +55,9 @@ static DEFINE_TIMER(dpm_drv_wd, dpm_drv_timeout, 0, 0);
  */
 static bool transition_started;
 
+static void pm_dev_trace(int type, struct device *dev, pm_message_t
+state, char *info); static int async_error;
+
 /**
  * device_pm_init - Initialize the PM-related part of a device object.
  * @dev: Device object being initialized.
@@ -63,7 +66,7 @@ void device_pm_init(struct device *dev)
 {
 	dev->power.status = DPM_ON;
 	init_completion(&dev->power.completion);
-	complete_all(&dev->power.completion);
+	dev->power.wakeup_count = 0;
 	pm_runtime_init(dev);
 }
 
@@ -927,6 +930,9 @@ static int __device_suspend(struct device *dev, pm_message_t state, bool async)
  End:
 	device_unlock(dev);
 	complete_all(&dev->power.completion);
+
+	if (error)
+		async_error = error;
 
 	return error;
 }
