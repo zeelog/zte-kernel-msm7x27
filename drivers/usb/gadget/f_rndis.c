@@ -28,13 +28,11 @@
 #include <linux/kernel.h>
 #include <linux/platform_device.h>
 #include <linux/etherdevice.h>
-#include <linux/usb/android_composite.h>
 
 #include <asm/atomic.h>
 
 #include "u_ether.h"
 #include "rndis.h"
-
 
 
 /*
@@ -88,7 +86,10 @@ struct f_rndis {
 	struct gether			port;
 	u8				ctrl_id, data_id;
 	u8				ethaddr[ETH_ALEN];
+	u32				vendorID;
+	const char			*manufacturer;
 	int				config;
+
 
 	struct rndis_ep_descs		fs;
 	struct rndis_ep_descs		hs;
@@ -131,17 +132,9 @@ static struct usb_interface_descriptor rndis_control_intf = {
 	/* .bInterfaceNumber = DYNAMIC */
 	/* status endpoint is optional; this could be patched later */
 	.bNumEndpoints =	1,
-#if defined(CONFIG_USB_ANDROID_RNDIS_WCEIS) || \
-    defined(CONFIG_USB_MAEMO_RNDIS_WCEIS)
-	/* "Wireless" RNDIS; auto-detected by Windows */
-	.bInterfaceClass =	USB_CLASS_WIRELESS_CONTROLLER,
-	.bInterfaceSubClass = 1,
-	.bInterfaceProtocol =	3,
-#else
 	.bInterfaceClass =	USB_CLASS_COMM,
 	.bInterfaceSubClass =   USB_CDC_SUBCLASS_ACM,
 	.bInterfaceProtocol =   USB_CDC_ACM_PROTO_VENDOR,
-#endif
 	/* .iInterface = DYNAMIC */
 };
 
@@ -160,13 +153,6 @@ static struct usb_cdc_call_mgmt_descriptor call_mgmt_descriptor = {
 
 	.bmCapabilities =	0x00,
 	.bDataInterface =	0x01,
-};
-
-static struct usb_cdc_acm_descriptor acm_descriptor = {
-	.bLength =		sizeof(acm_descriptor),
-	.bDescriptorType =	USB_DT_CS_INTERFACE,
-	.bDescriptorSubType =	USB_CDC_ACM_TYPE,
-	.bmCapabilities =	0x00, //USB_CDC_CAP_LINE,
 };
 
 static struct usb_cdc_acm_descriptor rndis_acm_descriptor = {
@@ -204,19 +190,11 @@ static struct usb_interface_assoc_descriptor
 rndis_iad_descriptor = {
 	.bLength =		sizeof rndis_iad_descriptor,
 	.bDescriptorType =	USB_DT_INTERFACE_ASSOCIATION,
-
 	.bFirstInterface =	0, /* XXX, hardcoded */
 	.bInterfaceCount = 	2,	// control + data
-#if defined(CONFIG_USB_ANDROID_RNDIS_WCEIS) || \
-    defined(CONFIG_USB_MAEMO_RNDIS_WCEIS)
-	.bFunctionClass    = 	USB_CLASS_WIRELESS_CONTROLLER,
-	.bFunctionSubClass = 	1,
-	.bFunctionProtocol = 	3,
-#else
 	.bFunctionClass =	USB_CLASS_COMM,
 	.bFunctionSubClass =	USB_CDC_SUBCLASS_ETHERNET,
-	.bFunctionProtocol =	USB_CDC_PROTO_NONE,
-#endif
+	.bFunctionProtocol =	USB_CDC_ACM_PROTO_VENDOR,
 	/* .iFunction = DYNAMIC */
 };
 
@@ -264,24 +242,6 @@ static struct usb_descriptor_header *eth_fs_function[] = {
 	NULL,
 };
 
-//ruanmeisi_20100810
-static struct usb_descriptor_header *eth_fs_function_noassoc[] = {
-	/* control interface matches ACM, not Ethernet */
-	//(struct usb_descriptor_header *) &rndis_interface_assoc_desc,
-	(struct usb_descriptor_header *) &rndis_control_intf,
-	(struct usb_descriptor_header *) &header_desc,
-	(struct usb_descriptor_header *) &call_mgmt_descriptor,
-	(struct usb_descriptor_header *) &acm_descriptor,
-	(struct usb_descriptor_header *) &rndis_union_desc,
-	(struct usb_descriptor_header *) &fs_notify_desc,
-	/* data interface has no altsetting */
-	(struct usb_descriptor_header *) &rndis_data_intf,
-	(struct usb_descriptor_header *) &fs_out_desc,
-	(struct usb_descriptor_header *) &fs_in_desc,
-	NULL,
-};
-//end
-
 /* high speed support: */
 
 static struct usb_endpoint_descriptor hs_notify_desc = {
@@ -327,44 +287,6 @@ static struct usb_descriptor_header *eth_hs_function[] = {
 	NULL,
 };
 
-//ruanmeisi_20100810
-static struct usb_descriptor_header *eth_hs_function_noassoc[] = {
-	/* control interface matches ACM, not Ethernet */
-	//(struct usb_descriptor_header *) &rndis_interface_assoc_desc,
-	(struct usb_descriptor_header *) &rndis_control_intf,
-	(struct usb_descriptor_header *) &header_desc,
-	(struct usb_descriptor_header *) &call_mgmt_descriptor,
-	(struct usb_descriptor_header *) &acm_descriptor,
-	(struct usb_descriptor_header *) &rndis_union_desc,
-	(struct usb_descriptor_header *) &hs_notify_desc,
-	/* data interface has no altsetting */
-	(struct usb_descriptor_header *) &rndis_data_intf,
-	(struct usb_descriptor_header *) &hs_in_desc,
-	(struct usb_descriptor_header *) &hs_out_desc,
-	NULL,
-};
-
-int support_assoc_desc(void);
-struct usb_descriptor_header ** get_eth_hs_function(void)
-{
-	if (support_assoc_desc()) {
-		return eth_hs_function;
-	} else {
-		return eth_hs_function_noassoc;
-	}
-}
-
-struct usb_descriptor_header ** get_eth_fs_function(void)
-{
-	if (support_assoc_desc()) {
-		return eth_fs_function;
-	} else {
-		return eth_fs_function_noassoc;
-	}
-}
-//end
-
-
 /* string descriptors: */
 
 static struct usb_string rndis_string_defs[] = {
@@ -383,10 +305,6 @@ static struct usb_gadget_strings *rndis_strings[] = {
 	&rndis_string_table,
 	NULL,
 };
-
-#ifdef CONFIG_USB_ANDROID_RNDIS
-static struct usb_ether_platform_data *rndis_pdata;
-#endif
 
 /*-------------------------------------------------------------------------*/
 
@@ -504,8 +422,7 @@ rndis_setup(struct usb_function *f, const struct usb_ctrlrequest *ctrl)
 	 */
 	case ((USB_DIR_OUT | USB_TYPE_CLASS | USB_RECIP_INTERFACE) << 8)
 			| USB_CDC_SEND_ENCAPSULATED_COMMAND:
-		if (w_length > req->length || w_value
-				|| w_index != rndis->ctrl_id)
+		if (w_value || w_index != rndis->ctrl_id)
 			goto invalid;
 		/* read the request; process it later */
 		value = w_length;
@@ -562,7 +479,6 @@ static int rndis_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 {
 	struct f_rndis		*rndis = func_to_rndis(f);
 	struct usb_composite_dev *cdev = f->config->cdev;
-	int ret = 0;
 
 	/* we know alt == 0 */
 
@@ -576,13 +492,7 @@ static int rndis_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 		rndis->notify_desc = ep_choose(cdev->gadget,
 				rndis->hs.notify,
 				rndis->fs.notify);
-
-		ret = usb_ep_enable(rndis->notify, rndis->notify_desc);
-		if (ret) {
-			ERROR(cdev, "can't enable %s, result %d\n",
-						rndis->notify->name, ret);
-			return ret;
-		}
+		usb_ep_enable(rndis->notify, rndis->notify_desc);
 		rndis->notify->driver_data = rndis;
 
 	} else if (intf == rndis->data_id) {
@@ -628,7 +538,7 @@ static int rndis_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 	} else
 		goto fail;
 
-	return ret;
+	return 0;
 fail:
 	return -EINVAL;
 }
@@ -750,19 +660,17 @@ rndis_bind(struct usb_configuration *c, struct usb_function *f)
 	rndis->notify_req->complete = rndis_response_complete;
 
 	/* copy descriptors, and track endpoint copies */
-	//ruanmeisi_20100809
-	
-	f->descriptors = usb_copy_descriptors(get_eth_fs_function());
+	f->descriptors = usb_copy_descriptors(eth_fs_function);
 	if (!f->descriptors)
 		goto fail;
 
-	rndis->fs.in = usb_find_endpoint(get_eth_fs_function(),
+	rndis->fs.in = usb_find_endpoint(eth_fs_function,
 			f->descriptors, &fs_in_desc);
-	rndis->fs.out = usb_find_endpoint(get_eth_fs_function(),
+	rndis->fs.out = usb_find_endpoint(eth_fs_function,
 			f->descriptors, &fs_out_desc);
-	rndis->fs.notify = usb_find_endpoint(get_eth_fs_function(),
+	rndis->fs.notify = usb_find_endpoint(eth_fs_function,
 			f->descriptors, &fs_notify_desc);
-//end
+
 	/* support all relevant hardware speeds... we expect that when
 	 * hardware is dual speed, all bulk-capable endpoints work at
 	 * both speeds
@@ -776,21 +684,18 @@ rndis_bind(struct usb_configuration *c, struct usb_function *f)
 				fs_notify_desc.bEndpointAddress;
 
 		/* copy descriptors, and track endpoint copies */
-		//ruanmeisi_20100809
-		//f->hs_descriptors = usb_copy_descriptors(eth_hs_function);
-		f->hs_descriptors = usb_copy_descriptors(get_eth_hs_function());
+		f->hs_descriptors = usb_copy_descriptors(eth_hs_function);
 
 		if (!f->hs_descriptors)
 			goto fail;
 
-		rndis->hs.in = usb_find_endpoint(get_eth_hs_function(),
+		rndis->hs.in = usb_find_endpoint(eth_hs_function,
 				f->hs_descriptors, &hs_in_desc);
-		rndis->hs.out = usb_find_endpoint(get_eth_hs_function(),
+		rndis->hs.out = usb_find_endpoint(eth_hs_function,
 				f->hs_descriptors, &hs_out_desc);
-		rndis->hs.notify = usb_find_endpoint(get_eth_hs_function(),
+		rndis->hs.notify = usb_find_endpoint(eth_hs_function,
 				f->hs_descriptors, &hs_notify_desc);
 	}
-	//end
 
 	rndis->port.open = rndis_open;
 	rndis->port.close = rndis_close;
@@ -803,13 +708,9 @@ rndis_bind(struct usb_configuration *c, struct usb_function *f)
 	rndis_set_param_medium(rndis->config, NDIS_MEDIUM_802_3, 0);
 	rndis_set_host_mac(rndis->config, rndis->ethaddr);
 
-#ifdef CONFIG_USB_ANDROID_RNDIS
-	if (rndis_pdata) {
-		if (rndis_set_param_vendor(rndis->config, rndis_pdata->vendorID,
-					rndis_pdata->vendorDescr))
+	if (rndis_set_param_vendor(rndis->config, rndis->vendorID,
+				   rndis->manufacturer))
 			goto fail;
-	}
-#endif
 
 	/* NOTE:  all that is done without knowing or caring about
 	 * the network link ... which is unavailable to this code
@@ -854,6 +755,8 @@ rndis_unbind(struct usb_configuration *c, struct usb_function *f)
 	rndis_deregister(rndis->config);
 	rndis_exit();
 
+	rndis_string_defs[0].id = 0;
+
 	if (gadget_is_dualspeed(c->cdev->gadget))
 		usb_free_descriptors(f->hs_descriptors);
 	usb_free_descriptors(f->descriptors);
@@ -884,26 +787,15 @@ static inline bool can_support_rndis(struct usb_configuration *c)
  * for calling @gether_cleanup() before module unload.
  */
 int
-rndis_bind_config(struct usb_configuration *c, u8 ethaddr[ETH_ALEN])
+rndis_bind_config(struct usb_configuration *c, u8 ethaddr[ETH_ALEN],
+				u32 vendorID, const char *manufacturer)
 {
 	struct f_rndis	*rndis;
 	int		status;
 
 	if (!can_support_rndis(c) || !ethaddr)
 		return -EINVAL;
-	//ruanmeisi_20100810
-#ifndef CONFIG_USB_ANDROID_RNDIS_WCEIS
-	if (support_assoc_desc()) {
-		rndis_control_intf.bInterfaceClass =	USB_CLASS_COMM;
-		rndis_control_intf.bInterfaceSubClass =   USB_CDC_SUBCLASS_ACM;
-		rndis_control_intf.bInterfaceProtocol =   USB_CDC_ACM_PROTO_VENDOR;
-	} else {
-		rndis_control_intf.bInterfaceClass =	USB_CLASS_WIRELESS_CONTROLLER;
-		rndis_control_intf.bInterfaceSubClass =   1;
-		rndis_control_intf.bInterfaceProtocol =   3;
-	}
-#endif
-	//end
+
 	/* maybe allocate device-global string IDs */
 	if (rndis_string_defs[0].id == 0) {
 
@@ -941,6 +833,8 @@ rndis_bind_config(struct usb_configuration *c, u8 ethaddr[ETH_ALEN])
 		goto fail;
 
 	memcpy(rndis->ethaddr, ethaddr, ETH_ALEN);
+	rndis->vendorID = vendorID;
+	rndis->manufacturer = manufacturer;
 
 	/* RNDIS activates when the host changes this filter */
 	rndis->port.cdc_filter = 0;
@@ -959,11 +853,6 @@ rndis_bind_config(struct usb_configuration *c, u8 ethaddr[ETH_ALEN])
 	rndis->port.func.setup = rndis_setup;
 	rndis->port.func.disable = rndis_disable;
 
-#ifdef CONFIG_USB_ANDROID_RNDIS
-	/* start disabled */
-	rndis->port.func.disabled = 1;
-#endif
-
 	status = usb_add_function(c, &rndis->port.func);
 	if (status) {
 		kfree(rndis);
@@ -972,67 +861,3 @@ fail:
 	}
 	return status;
 }
-
-#ifdef CONFIG_USB_ANDROID_RNDIS
-#if 0
-#include "rndis.c"
-
-static int rndis_probe(struct platform_device *pdev)
-{
-	rndis_pdata = pdev->dev.platform_data;
-	return 0;
-}
-
-static struct platform_driver rndis_platform_driver = {
-	.driver = { .name = "rndis", },
-	.probe = rndis_probe,
-};
-
-int rndis_function_bind_config(struct usb_configuration *c)
-{
-	int ret;
-
-	if (!rndis_pdata) {
-		printk(KERN_ERR "rndis_pdata null in rndis_function_bind_config\n");
-		return -1;
-	}
-
-	printk(KERN_ERR
-		"rndis_function_bind_config MAC: %02X:%02X:%02X:%02X:%02X:%02X\n",
-		rndis_pdata->ethaddr[0], rndis_pdata->ethaddr[1],
-		rndis_pdata->ethaddr[2], rndis_pdata->ethaddr[3],
-		rndis_pdata->ethaddr[4], rndis_pdata->ethaddr[5]);
-
-	ret = gether_setup(c->cdev->gadget, rndis_pdata->ethaddr);
-	if (ret == 0)
-		ret = rndis_bind_config(c, rndis_pdata->ethaddr);
-	printk(KERN_ERR
-		"rndis_function_bind_config MAC: %02X:%02X:%02X:%02X:%02X:%02X\n",
-		rndis_pdata->ethaddr[0], rndis_pdata->ethaddr[1],
-		rndis_pdata->ethaddr[2], rndis_pdata->ethaddr[3],
-		rndis_pdata->ethaddr[4], rndis_pdata->ethaddr[5]);
-	return ret;
-}
-
-int rndis_function_unbind_config(struct usb_configuration *c)
-{
-	gether_cleanup();
-	return 0;
-}
-
-static struct android_usb_function rndis_function = {
-	.name = "rndis",
-	.bind_config = rndis_function_bind_config,
-	.unbind_config = rndis_function_unbind_config,
-};
-
-static int __init init(void)
-{
-	printk(KERN_INFO "f_rndis init\n");
-	platform_driver_register(&rndis_platform_driver);
-	android_register_function(&rndis_function);
-	return 0;
-}
-module_init(init);
-#endif
-#endif /* CONFIG_USB_ANDROID_RNDIS */
