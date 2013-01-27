@@ -72,8 +72,9 @@ ssize_t mdp_dma_lcdc_show_event(struct device *dev,
 
 	INIT_COMPLETION(vsync_cntrl.vsync_wait);
 
-	ret = wait_for_completion_interruptible(&vsync_cntrl.vsync_wait);
-	if (ret < 0) {
+	ret = wait_for_completion_interruptible_timeout(&vsync_cntrl.vsync_wait,
+		msecs_to_jiffies(VSYNC_PERIOD * 4));
+	if (ret <= 0) {
 		ret = snprintf(buf, PAGE_SIZE, "VSYNC=%llu",
 				ktime_to_ns(ktime_get()));
 		buf[strlen(buf) + 1] = '\0';
