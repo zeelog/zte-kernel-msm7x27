@@ -8,11 +8,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA.
  */
 
 #include <linux/module.h>
@@ -42,7 +37,7 @@ static int msm_fb_bl_update_status(struct backlight_device *pbd)
 	return 0;
 }
 
-static struct backlight_ops msm_fb_bl_ops = {
+static const struct backlight_ops msm_fb_bl_ops = {
 	.get_brightness = msm_fb_bl_get_brightness,
 	.update_status = msm_fb_bl_update_status,
 };
