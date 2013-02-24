@@ -102,6 +102,18 @@ static inline int iommu_map(struct iommu_domain *domain, unsigned long iova,
 	return -ENODEV;
 }
 
+static inline int iommu_map_range(struct iommu_domain *domain, unsigned long iova,
+			    phys_addr_t paddr, size_t size, int prot)
+{
+	return -ENODEV;
+}
+
+static inline int iommu_unmap_range(struct iommu_domain *domain, unsigned long iova,
+			      size_t size)
+{
+	return -ENODEV;
+}
+
 static inline int iommu_unmap(struct iommu_domain *domain, unsigned long iova,
 			      int gfp_order)
 {
