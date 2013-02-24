@@ -34,8 +34,8 @@ struct kgsl_iommu {
 static int kgsl_iommu_pt_equal(struct kgsl_pagetable *pt,
 					unsigned int pt_base)
 {
-	struct iommu_domain *domain = pt->priv;
-	return pt && pt_base && ((unsigned int)domain == pt_base);
+	struct iommu_domain *domain = pt ? pt->priv : NULL;
+	return domain && pt_base && ((unsigned int)domain == pt_base);
 }
 
 static void kgsl_iommu_destroy_pagetable(void *mmu_specific_pt)
@@ -128,6 +128,7 @@ static int kgsl_get_iommu_ctxt(struct kgsl_iommu *iommu,
 	struct platform_device *pdev =
 		container_of(device->parentdev, struct platform_device, dev);
 	struct kgsl_device_platform_data *pdata_dev = pdev->dev.platform_data;
+#if 0
 	if (pdata_dev->iommu_user_ctx_name)
 		iommu->iommu_user_dev = msm_iommu_get_ctx(
 					pdata_dev->iommu_user_ctx_name);
@@ -141,6 +142,8 @@ static int kgsl_get_iommu_ctxt(struct kgsl_iommu *iommu,
 		status = -EINVAL;
 	}
 	return status;
+#endif
+	return -EINVAL;
 }
 
 static void kgsl_iommu_setstate(struct kgsl_device *device,
@@ -238,7 +241,7 @@ kgsl_iommu_unmap(void *mmu_specific_pt,
 	if (range == 0 || gpuaddr == 0)
 		return 0;
 
-	ret = iommu_unmap_range(domain, gpuaddr, range);
+	ret = iommu_unmap(domain, gpuaddr, range);
 	if (ret)
 		KGSL_CORE_ERR("iommu_unmap_range(%p, %x, %d) failed "
 			"with err: %d\n", domain, gpuaddr,
@@ -262,12 +265,12 @@ kgsl_iommu_map(void *mmu_specific_pt,
 	iommu_virt_addr = memdesc->gpuaddr;
 
 	ret = iommu_map_range(domain, iommu_virt_addr, memdesc->sg,
-				memdesc->size, MSM_IOMMU_ATTR_NONCACHED);
+				memdesc->size, (IOMMU_READ | IOMMU_WRITE));
 	if (ret) {
 		KGSL_CORE_ERR("iommu_map_range(%p, %x, %p, %d, %d) "
 				"failed with err: %d\n", domain,
 				iommu_virt_addr, memdesc->sg, memdesc->size,
-				MSM_IOMMU_ATTR_NONCACHED, ret);
+				0, ret);
 		return ret;
 	}
 
