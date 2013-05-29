@@ -130,7 +130,7 @@ when         who        what, where, why                             comment tag
 #define MSM_PMEM_MDP_SIZE	0x1B76000
 #define MSM_PMEM_ADSP_SIZE	0xC8A000
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
-#define MSM_FB_SIZE		0x2EE000
+#define MSM_FB_SIZE		0x234000
 #else
 #define MSM_FB_SIZE		0x200000
 #endif
