@@ -3419,7 +3419,7 @@ static int msm_fb_ioctl(struct fb_info *info, unsigned int cmd,
 
 			ret = copy_from_user(&grp_id, argp, sizeof(grp_id));
 			if (ret)
-				return ret;
+				goto msm_fb_ioctl_exit;
 
 			mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 			writel(grp_id, MDP_FULL_BYPASS_WORD43);
