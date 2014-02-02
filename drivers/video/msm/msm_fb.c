@@ -1084,7 +1084,6 @@ static int msm_fb_register(struct msm_fb_data_type *mfd)
 	struct fb_fix_screeninfo *fix;
 	struct fb_var_screeninfo *var;
 	int *id;
-	int fbram_offset;
 	int remainder, remainder_mode2;
 	static int subsys_id[2] = {MSM_SUBSYSTEM_DISPLAY,
 		MSM_SUBSYSTEM_ROTATOR};
@@ -1308,7 +1307,7 @@ static int msm_fb_register(struct msm_fb_data_type *mfd)
 #else
 	error CONFIG_FB_MSM_MDP undefined !
 #endif
-	 fbi->fbops = &msm_fb_ops;
+	fbi->fbops = &msm_fb_ops;
 	fbi->flags = FBINFO_FLAG_DEFAULT;
 	fbi->pseudo_palette = msm_fb_pseudo_palette;
 
@@ -1322,10 +1321,7 @@ static int msm_fb_register(struct msm_fb_data_type *mfd)
 	init_completion(&mfd->refresher_comp);
 	init_MUTEX(&mfd->sem);
 
-	fbram_offset = PAGE_ALIGN((int)fbram)-(int)fbram;
-	fbram += fbram_offset;
-	fbram_phys += fbram_offset;
-	fbram_size -= fbram_offset;
+	BUG_ON(!IS_ALIGNED((unsigned long)fbram, PAGE_SIZE));
 
 	if (mfd->index == 0)
 		if (fbram_size < fix->smem_len) {
@@ -1384,10 +1380,6 @@ static int msm_fb_register(struct msm_fb_data_type *mfd)
 
 	if (fbi->node == 0)
 		wake_lock_init(&mdp_idle_wakelock, WAKE_LOCK_IDLE, "mdp");
-
-	fbram += fix->smem_len;
-	fbram_phys += fix->smem_len;
-	fbram_size -= fix->smem_len;
 
 	MSM_FB_INFO
 	    ("FrameBuffer[%d] %dx%d size=%d bytes is registered successfully!\n",
