@@ -460,7 +460,7 @@ static int msm_pmic_led_suspend(struct platform_device *dev,
        for (i = 0; i < 2; i++){
 	    STATUS_LED->blink_led[i].restore_brightness = STATUS_LED->blink_led[i].led.brightness;
 	    STATUS_LED->blink_led[i].restore_blink_flag = STATUS_LED->blink_led[i].blink_flag;
-            pr_crit(ZYF_BL_TAG "Setting %s led for suspend. brightness=%i blink=%s",i?"green":"red", STATUS_LED->blink_led[i].led.brightness, STATUS_LED->blink_led[i].blink_flag ? "true":"false");
+            pr_crit(ZYF_BL_TAG "Setting %s led for suspend. brightness=%i blink=%s\n",i?"green":"red", STATUS_LED->blink_led[i].led.brightness, STATUS_LED->blink_led[i].blink_flag ? "true":"false");
             if(STATUS_LED->blink_led[i].led.brightness)
                 STATUS_LED->blink_led[i].led.brightness = 32;
             STATUS_LED->blink_led[i].blink_flag = 0;
@@ -483,7 +483,7 @@ static int msm_pmic_led_resume(struct platform_device *dev)
 #endif
 #ifdef CONFIG_LED_ON_AFTER_SUSPEND
        for (i = 0; i < 2; i++){
-           pr_crit(ZYF_BL_TAG "Setting %s led for wake. brightness=%i blink=%s",i?"green":"red", STATUS_LED->blink_led[i].restore_brightness, STATUS_LED->blink_led[i].restore_blink_flag ? "true":"false");
+           pr_crit(ZYF_BL_TAG "Setting %s led for wake. brightness=%i blink=%s\n",i?"green":"red", STATUS_LED->blink_led[i].restore_brightness, STATUS_LED->blink_led[i].restore_blink_flag ? "true":"false");
            STATUS_LED->blink_led[i].led.brightness = STATUS_LED->blink_led[i].restore_brightness;
            if(STATUS_LED->blink_led[i].restore_blink_flag)
                led_blink_solid_store(STATUS_LED->blink_led[i].led.dev, &dev_attr_blink, "1", 1);
