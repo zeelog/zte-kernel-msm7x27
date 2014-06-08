@@ -127,8 +127,8 @@ when         who        what, where, why                             comment tag
 #endif
 
 #ifdef CONFIG_ARCH_MSM7X27
-#define MSM_PMEM_MDP_SIZE	0x1600000
-#define MSM_PMEM_ADSP_SIZE	0xB71000
+#define MSM_PMEM_MDP_SIZE	0x1B76000
+#define MSM_PMEM_ADSP_SIZE	0xC8A000
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
 #define MSM_FB_SIZE		0x234000
 #else
