@@ -23,7 +23,7 @@ config ARCH_MSM7X27
 	select ARCH_MSM_ARM11
 	select MSM_VIC
 	select CPU_V6
-	select MSM_REMOTE_SPINLOCK_SWP
+	select MSM_REMOTE_SPINLOCK_LDREX
 	select MSM_GPIOMUX
 
 config ARCH_MSM7X30
