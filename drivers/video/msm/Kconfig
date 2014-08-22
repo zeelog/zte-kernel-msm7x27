@@ -13,6 +13,10 @@ config FB_MSM_LCDC
 	bool
 	default n
 
+config FIX_DANCING_CWM
+	bool "Fix dancing CWM"
+	default n
+
 config FB_MSM_OVERLAY
 	depends on FB_MSM_MDP40 && ANDROID_PMEM
 	bool "MDP4 overlay support"
