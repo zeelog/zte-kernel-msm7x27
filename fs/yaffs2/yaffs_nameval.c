@@ -146,21 +146,18 @@ int nval_get(const char *xb, int xb_size, const YCHAR * name, char *buf,
 		pos++;
 		size--;
 
-		/* If bsize is zero then this is a size query.
-		 * Return the size, but don't copy.
-		 */
 		if (!bsize)
 			return size;
 
-		if (size <= bsize) {
-			memcpy(buf, xb + pos, size);
+		if(size <= bsize){
+			memcpy(buf,xb + pos,size);
 			return size;
 		}
 	}
 	if (pos >= 0)
 		return -ERANGE;
-
-	return -ENODATA;
+	else
+		return -ENODATA;
 }
 
 int nval_list(const char *xb, int xb_size, char *buf, int bsize)
